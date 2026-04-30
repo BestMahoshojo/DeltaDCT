@@ -30,8 +30,6 @@ pip install -r requirements.txt
 bash build.sh
 ```
 
-说明：C++ 构建已封装在 `build.sh` 中，日常使用无需再手动输入 `cmake -S/-B` 和 `cmake --build`。
-
 可选：编译后自动执行 C++ 测试
 
 ```bash

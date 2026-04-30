@@ -1,4 +1,8 @@
+# Build outputs
 build/
+*.so
+
+# Python caches and virtual environments
 **/__pycache__/
 *.pyc
 *.pyo
@@ -9,10 +13,13 @@ build/
 venv/
 ENV/
 env/
+
+# Generated experiment / benchmark artifacts
 DeltaDCT_Output/
+benchmark_data/
 experiment_datasets/
-benchmark_data/*.ddct
-benchmark_data/*.ddctpack
 tmp/
 /tmp/
+
+# Deprecated local test data
 Jpeg_test/

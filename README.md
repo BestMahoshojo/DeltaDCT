@@ -160,10 +160,3 @@ DeltaDCT/
 ```
 
 注：`build/`、`benchmark_data/`、`DeltaDCT_Output/` 等构建或运行期生成目录不在上面的核心结构展示中。
-
-## Git 推送流程
-
-1. `git status` 检查变更。
-2. `git add .` 或只添加你要提交的文件。
-3. `git commit -m "release: DeltaDCT 1.0"`。
-4. `git push origin main`，如果你使用的是别的分支就替换成对应分支名。

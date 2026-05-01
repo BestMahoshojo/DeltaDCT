@@ -108,16 +108,36 @@ def _iter_jpeg_pairs(dataset_dir: str) -> List[Tuple[str, str]]:
     return pairs
 
 
+def _get_routing_mode(mode_str: str):
+    """Map string to pydeltadct.RoutingMode enum"""
+    _, pydeltadct = _load_deltadct_manager()
+    mode_map = {
+        "auto": pydeltadct.RoutingMode.ROUTING_AUTO,
+        "fpm": pydeltadct.RoutingMode.FPM_ONLY,
+        "dchash": pydeltadct.RoutingMode.DCHASH_ONLY,
+    }
+    mode = mode_map.get(mode_str.lower())
+    if mode is None:
+        raise ValueError(f"Invalid routing mode: {mode_str}. Must be one of: auto, fpm, dchash")
+    return mode
+
+
 def _scan_command(args: argparse.Namespace) -> int:
     output_root, used_default, message = _resolve_output_root(args.out)
     print(message)
 
     GlobalDedupEngine, _ = _load_deltadct_manager()
 
+    routing_mode = None
+    if hasattr(args, "force_route") and args.force_route:
+        routing_mode = _get_routing_mode(args.force_route)
+        print(f"🚦 强制路由模式: {args.force_route}")
+
     engine = GlobalDedupEngine(
         vote_threshold=args.threshold,
         force_dedup=args.force,
         strict_lossless=True,
+        routing_mode=routing_mode,
     )
     engine.output_root_base = output_root
 
@@ -258,7 +278,13 @@ def _benchmark_command(args: argparse.Namespace) -> int:
 
         out_ddct = os.path.join(output_dir, f"{Path(target_path).stem}.ddct")
         start = time.perf_counter()
-        result = pydeltadct.compress_image(target_path, base_path, out_ddct)
+        routing_mode = None
+        if hasattr(args, "force_route") and args.force_route:
+            routing_mode = _get_routing_mode(args.force_route)
+        if routing_mode is not None:
+            result = pydeltadct.compress_image(target_path, base_path, out_ddct, routing_mode)
+        else:
+            result = pydeltadct.compress_image(target_path, base_path, out_ddct)
         deltadct_time += time.perf_counter() - start
         if result.success:
             total_deltadct_size += int(result.compressed_size)
@@ -313,6 +339,12 @@ def build_parser() -> argparse.ArgumentParser:
     scan_parser.add_argument("--out", required=True, help="Output root directory")
     scan_parser.add_argument("--threshold", type=int, default=2, help="Vote threshold")
     scan_parser.add_argument("--force", action="store_true", help="Force dedup even if ratio is low")
+    scan_parser.add_argument(
+        "--force-route",
+        choices=["auto", "fpm", "dchash"],
+        default=None,
+        help="Force specific routing mode: auto (automatic), fpm (FPM-only), dchash (DCHash-only)",
+    )
     scan_parser.set_defaults(func=_scan_command)
 
     restore_parser = subparsers.add_parser("restore", help="Restore all files from a .ddctpack archive")
@@ -322,6 +354,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     benchmark_parser = subparsers.add_parser("benchmark", help="Benchmark a dataset directory")
     benchmark_parser.add_argument("--dir", required=True, help="Dataset directory")
+    benchmark_parser.add_argument(
+        "--force-route",
+        choices=["auto", "fpm", "dchash"],
+        default=None,
+        help="Force specific routing mode: auto (automatic), fpm (FPM-only), dchash (DCHash-only)",
+    )
     benchmark_parser.set_defaults(func=_benchmark_command)
 
     return parser

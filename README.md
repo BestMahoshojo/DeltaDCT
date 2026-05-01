@@ -10,6 +10,7 @@ DeltaDCT 是一个基于 JPEG 频率域 DCT 块级比对的无损图像去重系
 - Streamlit UI 只保留全局扫描和归档还原两个主入口。
 - 命令行入口 `main.py` 支持扫描、恢复和基准测试。
 - 批量校验脚本支持只从归档内容恢复，不再强制要求原始 Base 目录。
+- 路由现在支持显式强制模式：`auto`、`fpm`、`dchash`，默认仍然是自动路由。
 
 ## 构建要求
 
@@ -61,6 +62,17 @@ python3 main.py restore --pack /path/to/archive.ddctpack --out /path/to/restored
 ```bash
 python3 main.py benchmark --dir /path/to/benchmark_dataset
 ```
+
+如果需要强制路由，可以额外传入：
+
+```bash
+python3 main.py benchmark --dir /path/to/benchmark_dataset --force-route fpm
+python3 main.py scan --src /path/to/dataset --out /path/to/output --force-route dchash
+```
+
+可选值为 `auto`、`fpm`、`dchash`。未传入时保持原有自动路由行为不变。
+
+Streamlit UI 也提供了同样的路由模式选择，适合做对比实验和手工验证。
 
 归档完整性校验：
 

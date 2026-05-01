@@ -99,6 +99,8 @@ if "preview_dir" not in st.session_state:
     st.session_state.preview_dir = ""
 if "strict_lossless" not in st.session_state:
     st.session_state.strict_lossless = True
+if "routing_mode" not in st.session_state:
+    st.session_state.routing_mode = None
 
 
 def _render_metrics(stats: Dict[str, Any], container: Any) -> None:
@@ -472,6 +474,16 @@ with st.sidebar:
         value=True,
         help="仅当 DCT 系数完全一致时才允许 COPY，确保像素级无损还原。",
     )
+    routing_mode = st.selectbox(
+        "🚦 路由模式",
+        ["auto", "fpm", "dchash"],
+        format_func=lambda x: {"auto": "自动路由", "fpm": "强制 FPM", "dchash": "强制 DCHash"}[x],
+        help=(
+            "auto: 根据块相似度自动选择最优路由\n"
+            "fpm: 强制使用 FPM 编码（高对齐场景优化）\n"
+            "dchash: 强制使用 DCHash 编码（低对齐/容错能力强）"
+        ),
+    )
     output_root_input = st.text_input(
         "输出根目录",
         value=st.session_state.output_root_input,
@@ -531,10 +543,18 @@ with tab_scan:
             st.session_state.output_root = ""
             st.session_state.strict_lossless = strict_lossless
             st.session_state.output_root = resolved_output_root
+            routing_mode_enum = None
+            if routing_mode != "auto":
+                mode_map = {
+                    "fpm": pydeltadct.RoutingMode.FPM_ONLY,
+                    "dchash": pydeltadct.RoutingMode.DCHASH_ONLY,
+                }
+                routing_mode_enum = mode_map.get(routing_mode)
             engine = GlobalDedupEngine(
                 vote_threshold=vote_threshold,
                 force_dedup=force_dedup,
                 strict_lossless=strict_lossless,
+                routing_mode=routing_mode_enum,
             )
             engine.output_root_base = resolved_output_root
             st.session_state.engine = engine

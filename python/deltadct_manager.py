@@ -118,6 +118,7 @@ class GlobalDedupEngine:
         window_size: int = 2,
         num_features: int = 10,
         strict_lossless: bool = True,
+        routing_mode: Optional[Any] = None,
     ) -> None:
         self.feature_index: Dict[int, List[str]] = {}
         self.dependencies: Dict[str, str] = {}
@@ -130,6 +131,7 @@ class GlobalDedupEngine:
         self.window_size = max(1, int(window_size))
         self.num_features = max(1, int(num_features))
         self.strict_lossless = bool(strict_lossless)
+        self.routing_mode: Optional[Any] = routing_mode
         self.output_dir = os.path.abspath(output_dir) if output_dir else None
         self.root_dir: Optional[str] = None
         self.output_root: Optional[str] = None
@@ -279,7 +281,7 @@ class GlobalDedupEngine:
                     target_img_path,
                     best_base,
                     output_ddct,
-                    pydeltadct.RoutingMode.ROUTING_AUTO,
+                    self.routing_mode if self.routing_mode is not None else pydeltadct.RoutingMode.ROUTING_AUTO,
                     self.window_size,
                     self.num_features,
                     self.strict_lossless,

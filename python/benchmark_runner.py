@@ -29,7 +29,7 @@ def byte_compression(target_path):
         compressed = zlib.compress(f.read(), level=9)
     return len(compressed)
 
-def run_benchmarks():
+def run_benchmarks(routing_mode=None):
     results = []
     
     # 确定输出目录：脚本所在目录的上一级 -> benchmark_data
@@ -37,6 +37,9 @@ def run_benchmarks():
     parent_dir = os.path.dirname(script_dir)          # 上一级目录
     output_dir = os.path.join(parent_dir, "benchmark_data")
     os.makedirs(output_dir, exist_ok=True)            # 创建目录（如果不存在）
+    
+    if routing_mode is not None:
+        print(f"🚦 路由模式: {routing_mode}")
     
     for dataset in DATASETS:
         print(f"\n📊 正在评测数据集: {os.path.basename(dataset)}")
@@ -80,8 +83,10 @@ def run_benchmarks():
             # 3. DeltaDCT 压缩
             out_ddct = target + ".ddct"
             t_start = time.perf_counter()
-            # mode=0 为自动路由
-            res = pydeltadct.compress_image(target, base, out_ddct) 
+            if routing_mode is not None:
+                res = pydeltadct.compress_image(target, base, out_ddct, routing_mode)
+            else:
+                res = pydeltadct.compress_image(target, base, out_ddct)
             t_end = time.perf_counter()
             
             if res.success:

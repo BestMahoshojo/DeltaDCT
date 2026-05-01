@@ -40,11 +40,12 @@ def run_benchmarks():
     
     for dataset in DATASETS:
         print(f"\n📊 正在评测数据集: {os.path.basename(dataset)}")
-        if not os.path.exists(dataset): continue
+        if not os.path.exists(dataset):
+            continue
         
         # 寻找所有的配对
         pairs = []
-        files = os.listdir(dataset)
+        files = sorted(os.listdir(dataset))
         for f in files:
             if (
                 f.endswith('_target.jpg')
@@ -91,38 +92,66 @@ def run_benchmarks():
                 total_deltadct_size += orig_size
                 deltadct_time += (t_end - t_start)
                 
+        pair_count = len(pairs)
+        if pair_count == 0:
+            continue
+
         # 计算统计学指标
         md5_ratio = total_original / total_md5_size if total_md5_size > 0 else 1.0
         zlib_ratio = total_original / total_zlib_size if total_zlib_size > 0 else 1.0
         deltadct_ratio = total_original / total_deltadct_size if total_deltadct_size > 0 else 1.0
+
+        # 全流程口径：把每对(base,target)原始存储与(unique bases + all deltas)归档存储进行比较。
         total_base_pack_size = sum(os.path.getsize(path) for path in unique_base_paths)
         total_archive_size = total_base_pack_size + total_deltadct_size
-        system_ratio = total_original / total_archive_size if total_archive_size > 0 else 1.0
-        system_saving_pct = (1.0 - 1.0 / system_ratio) * 100.0 if system_ratio > 0 else 0.0
+
+        # 目标侧口径：仅比较 target 原始总量与 delta 总量。
+        delta_saved_bytes = max(total_original - total_deltadct_size, 0)
+        delta_saving_pct = (
+            (delta_saved_bytes / total_original) * 100.0 if total_original > 0 else 0.0
+        )
+
+        # 全流程口径：比较 (base + target) 原始总量 与 (unique base + delta) 归档总量。
         full_flow_storage_size = total_archive_size
         full_flow_ratio = (
             total_full_original_size / full_flow_storage_size
             if full_flow_storage_size > 0
             else 1.0
         )
-        system_wide_saving_pct = system_saving_pct
+        full_flow_saved_bytes = max(total_full_original_size - full_flow_storage_size, 0)
+        system_wide_saving_pct = (
+            (full_flow_saved_bytes / total_full_original_size) * 100.0
+            if total_full_original_size > 0
+            else 0.0
+        )
         throughput_mbps = (total_original / 1024 / 1024) / deltadct_time if deltadct_time > 0 else 0
+        avg_time_ms = (deltadct_time / pair_count) * 1000.0
         
         results.append({
             "Dataset": os.path.basename(dataset),
+            "Pair Count": pair_count,
             "Original Size (MB)": round(total_original / 1024 / 1024, 2),
             "Full Original Size (MB)": round(total_full_original_size / 1024 / 1024, 2),
             "Base Pack Size (MB)": round(total_base_pack_size / 1024 / 1024, 2),
+            "Delta Size (MB)": round(total_deltadct_size / 1024 / 1024, 2),
+            "Delta Saved (MB)": round(delta_saved_bytes / 1024 / 1024, 2),
+            "Delta Saving (%)": round(delta_saving_pct, 2),
             "Total_Archive_Size (MB)": round(total_archive_size / 1024 / 1024, 2),
             "Full Flow Ratio": round(full_flow_ratio, 2),
             "MD5 Ratio": round(md5_ratio, 2),
             "Zlib Ratio": round(zlib_ratio, 2),
             "DeltaDCT Ratio": round(deltadct_ratio, 2),
             "System_Wide_Saving_Pct": round(system_wide_saving_pct, 2),
+            "Total Time (s)": round(deltadct_time, 3),
+            "Avg Time/Image (ms)": round(avg_time_ms, 3),
             "Throughput (MB/s)": round(throughput_mbps, 2)
         })
 
     # 输出为 CSV，存放于上一级的 benchmark_data 文件夹
+    if not results:
+        print("\n⚠️ 未找到可评测的数据集或有效配对。")
+        return
+
     csv_file = os.path.join(output_dir, "benchmark_results.csv")
     with open(csv_file, mode='w', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=results[0].keys())
@@ -133,7 +162,7 @@ def run_benchmarks():
     print("\n📦 全流程存储空间压缩比例 (含 Base):")
     for row in results:
         print(f"- {row['Dataset']}: {row['Full Flow Ratio']:.2f}x")
-    print("\n🧮 系统级节省率 (Original / Archive):")
+    print("\n🧮 系统级节省率 (以 Full Original 为基准):")
     for row in results:
         print(f"- {row['Dataset']}: {row['System_Wide_Saving_Pct']:.2f}%")
 

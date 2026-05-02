@@ -157,7 +157,15 @@ def run_benchmarks(routing_mode=None):
         print("\n⚠️ 未找到可评测的数据集或有效配对。")
         return
 
-    csv_file = os.path.join(output_dir, "benchmark_results.csv")
+    mode_suffix = "results"
+    if routing_mode is not None:
+        mode_str = str(routing_mode).lower()
+        if "fpm" in mode_str:
+            mode_suffix = "fpm"
+        elif "dchash" in mode_str:
+            mode_suffix = "dchash"
+
+    csv_file = os.path.join(output_dir, f"benchmark_{mode_suffix}.csv")
     with open(csv_file, mode='w', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=results[0].keys())
         writer.writeheader()

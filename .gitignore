@@ -20,6 +20,7 @@ benchmark_data/
 experiment_datasets/
 tmp/
 /tmp/
+paper_data/
 
 # Deprecated local test data
 Jpeg_test/
